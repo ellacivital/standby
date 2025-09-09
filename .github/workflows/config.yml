@@ -26,8 +26,12 @@ jobs:
       - name: 设置环境
         run: |
           echo "REPO_URL=https://api.github.com/repos/bia-pain-bache/BPB-Worker-Panel/releases" >> $GITHUB_ENV
-          echo "TARGET_FILE=worker.zip" >> $GITHUB_ENV
-
+          echo "TARGET_FILE=worker.js" >> $GITHUB_ENV
+      
+      - name: Install dependencies
+        run: |
+          npm install -g javascript-obfuscator
+     
       - name: 检查并更新 Worker
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用 GitHub Token 认证
@@ -67,10 +71,21 @@ jobs:
 
           # 下载并更新
           log "下载 $TARGET_FILE..."
-          wget -q -O "$TARGET_FILE" "$DOWNLOAD_URL"
-          log "解压 $TARGET_FILE..."
-          unzip -o "$TARGET_FILE"
-          rm "$TARGET_FILE"
+          wget -q -O origin.js "$DOWNLOAD_URL"
+          javascript-obfuscator origin.js --output _worker.js \
+          --compact true \
+          --control-flow-flattening true \
+          --control-flow-flattening-threshold 1 \
+          --dead-code-injection true \
+          --dead-code-injection-threshold 1 \
+          --identifier-names-generator hexadecimal \
+          --rename-globals true \
+          --string-array true \
+          --string-array-encoding 'rc4' \
+          --string-array-threshold 1 \
+          --transform-object-keys true \
+          --unicode-escape-sequence true
+
           echo "$TAG_NAME" > version.txt
           log "更新完成，新版本: $TAG_NAME"
 
